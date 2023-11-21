@@ -1,31 +1,49 @@
 const dgram = require('dgram');
 
-const PORT = 3000; // Numri i portit, mund ta ndryshoni sipas nevojës
+// Create server
+const serverName = 'localhost';
+const serverPort = 1234;
 
-const server = dgram.createSocket('udp4');
+// Create server socket
+const serverAddress = { address: serverName, port: serverPort };
+const serverSocket = dgram.createSocket('udp4'); // IPv4, UDP socket
 
-server.on('message', (msg, rinfo) => {
-    console.log(`Marrë nga klienti: ${msg} nga ${rinfo.address}:${rinfo.port}`);
+// Associate server port number with the socket
+serverSocket.bind(serverAddress.port, serverAddress.address);
 
-    // Përpunimi i kërkesave të klientit
-    handleClientRequest(server, msg, rinfo);
+console.log('The server is ready to receive');
+
+// For continuous receival of messages
+serverSocket.on('message', (message, clientAddress) => {
+    console.log(`Received message from client at ${clientAddress.address}:${clientAddress.port}`);
+    console.log(`Original message: ${message.toString()}`);
+
+    const modifiedMessage = message.toString().toUpperCase(); // Capitalize the message
+    serverSocket.send(modifiedMessage, clientAddress.port, clientAddress.address, (err) => {
+        if (err) {
+            console.error('Error sending response to client:', err);
+        } else {
+            console.log('Response sent to client:', modifiedMessage);
+        }
+    });
 });
 
-server.on('listening', () => {
-    const address = server.address();
-    console.log(`Serveri është i gatshëm të dëgjojë në ${address.address}:${address.port}`);
+// Handle errors
+serverSocket.on('error', (err) => {
+    console.error('Server error:', err);
 });
 
-server.bind(PORT);
+// Handle server close
+serverSocket.on('close', () => {
+    console.log('Server is closing.');
+});
 
-// Përpunimi i kërkesave të klientit
-function handleClientRequest(server, message, clientInfo) {
-    // Implementoni logjikën e kontrollit të aksesit dhe përgjigjen e kërkesave këtu
-    // P.sh., mund të shikoni nëse kërkesa është për të lexuar, shkruar ose ekzekutuar,
-    // dhe pastaj të lejoni ose mos lejoni bazuar në privilegjet e klientit.
-    // Pastaj, përgjigjeni klientit në përputhje me rezultatin e kërkesës së tij.
+// Handle server listening
+serverSocket.on('listening', () => {
+    const address = serverSocket.address();
+    console.log(`Server is listening on ${address.address}:${address.port}`);
+});
 
-    // Këtu është një shembull i thjeshtë për të dërguar një përgjigje tek klienti
-    const response = 'Kërkesa u pranua dhe u përpunua me sukses.';
-    server.send(response, clientInfo.port, clientInfo.address);
-}
+// For continuous receival of messages
+// While loop is not needed in Node.js as the server continuously listens for messages
+// The serverSocket.on('message') event is triggered whenever a message is received
