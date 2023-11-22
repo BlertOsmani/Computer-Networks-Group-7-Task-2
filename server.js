@@ -1,7 +1,7 @@
 const dgram = require('dgram');
 
 // Create server
-const serverName = 'localhost';
+const serverName = '10.11.68.62';
 const serverPort = 1234;
 
 // Create server socket
@@ -13,20 +13,29 @@ serverSocket.bind(serverAddress.port, serverAddress.address);
 
 console.log('The server is ready to receive');
 
-// For continuous receival of messages
-serverSocket.on('message', (message, clientAddress) => {
+// Function to handle incoming messages and send a dynamic response
+function handleIncomingMessage(message, clientAddress) {
     console.log(`Received message from client at ${clientAddress.address}:${clientAddress.port}`);
     console.log(`Original message: ${message.toString()}`);
 
-    const modifiedMessage = message.toString().toUpperCase(); // Capitalize the message
-    serverSocket.send(modifiedMessage, clientAddress.port, clientAddress.address, (err) => {
-        if (err) {
-            console.error('Error sending response to client:', err);
-        } else {
-            console.log('Response sent to client:', modifiedMessage);
-        }
+    // Read input from the console for the dynamic response
+    process.stdout.write('Enter a response: ');
+    process.stdin.once('data', (input) => {
+        const responseMessage = input.toString().trim();
+
+        // Send the dynamic response to the client
+        serverSocket.send(responseMessage, clientAddress.port, clientAddress.address, (err) => {
+            if (err) {
+                console.error('Error sending response to client:', err);
+            } else {
+                console.log('Response sent to client:', responseMessage);
+            }
+        });
     });
-});
+}
+
+// Event handler for continuous receival of messages
+serverSocket.on('message', handleIncomingMessage);
 
 // Handle errors
 serverSocket.on('error', (err) => {
@@ -46,4 +55,4 @@ serverSocket.on('listening', () => {
 
 // For continuous receival of messages
 // While loop is not needed in Node.js as the server continuously listens for messages
-// The serverSocket.on('message') event is triggered whenever a message is received
+// The serverSocket.on('message') event is triggered whenever a message is received.
