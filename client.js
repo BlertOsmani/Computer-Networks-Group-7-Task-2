@@ -13,7 +13,7 @@ function sendMessage() {
     process.stdout.write('Enter a message: ');
     process.stdin.once('data', (input) => {
         const message = input.toString().trim();
-
+s
         // Send the message to the server
         clientSocket.send(message, serverPort, serverName, (err) => {
             if (err) {
@@ -31,7 +31,7 @@ clientSocket.on('message', (modifiedMessage, serverAddress) => {
     console.log('Modified Message:', modifiedMessage.toString());
     console.log('Server Address:', serverAddress);
 
-    // Prompt user for the next message
+    // Prompt user for the next messageee
     sendMessage();
 });
 
