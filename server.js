@@ -2,7 +2,7 @@ const dgram = require('dgram');
 const fs = require('fs');
 
 const PORT = 3000;
-const IP_ADDRESS = '192.168.43.251';
+const IP_ADDRESS = '192.168.1.69';
 
 let adminClient = null;
 
@@ -41,7 +41,11 @@ server.on('message', (msg, rinfo) => {
         handleExecute(rinfo, path);
         break;
       case 'delete':
-        handleDelete(rinfo, path);
+        if (clientKey === adminClient) {
+          handleDelete(rinfo, path, content);
+        } else {
+          server.send('You do not have delete permissions', rinfo.port, rinfo.address);
+        }
         break;
         case 'upload':
           if (clientKey === adminClient) {
