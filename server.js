@@ -15,9 +15,6 @@ server.on('message', (msg, rinfo) => {
 
   if (!adminClient) {
     adminClient = clientKey;
-    server.send('You are admin', rinfo.port, rinfo.address);
-  } else if (adminClient !== clientKey) {
-    server.send('You don\'t have admin permissions', rinfo.port, rinfo.address);
   }
 
   const message = msg.toString().trim();
