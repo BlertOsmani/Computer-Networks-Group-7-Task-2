@@ -15,9 +15,9 @@ server.on('message', (msg, rinfo) => {
 
   if (!adminClient) {
     adminClient = clientKey;
-    server.send('You are the admin', rinfo.port, rinfo.address);
+    server.send('You are admin', rinfo.port, rinfo.address);
   } else if (adminClient !== clientKey) {
-    server.send('You do not have admin permissions', rinfo.port, rinfo.address);
+    server.send('You don\'t have admin permissions', rinfo.port, rinfo.address);
   }
 
   const message = msg.toString().trim();
@@ -34,24 +34,21 @@ server.on('message', (msg, rinfo) => {
         if (clientKey === adminClient) {
           handleWrite(rinfo, path, content);
         } else {
-          server.send('You do not have write permissions', rinfo.port, rinfo.address);
+          server.send('!write', rinfo.port, rinfo.address);
         }
-        break;
-      case 'execute':
-        handleExecute(rinfo, path);
         break;
       case 'delete':
         if (clientKey === adminClient) {
           handleDelete(rinfo, path, content);
         } else {
-          server.send('You do not have delete permissions', rinfo.port, rinfo.address);
+          server.send('!delete', rinfo.port, rinfo.address);
         }
         break;
         case 'upload':
           if (clientKey === adminClient) {
             handleUpload(rinfo, path, content);
           } else {
-            server.send('You do not have upload permissions', rinfo.port, rinfo.address);
+            server.send('!upload', rinfo.port, rinfo.address);
           }
           break;
       default:
@@ -95,7 +92,7 @@ function handleRead(clientInfo, path) {
     if (err) {
       server.send(`Error reading file: ${err.message}`, clientInfo.port, clientInfo.address);
     } else {
-      server.send(`File content:\n${data}`, clientInfo.port, clientInfo.address);
+      server.send(`File content:${data}`, clientInfo.port, clientInfo.address);
     }
   });
 }
@@ -126,10 +123,3 @@ function handleWrite(clientInfo, path, message) {
       }
     });
   }
-  
-
-function handleExecute(clientInfo, path) {
-  
-  // Example: child_process.exec(path, (err, stdout, stderr) => { ... });
-  server.send('Execute command executed', clientInfo.port, clientInfo.address);
-}

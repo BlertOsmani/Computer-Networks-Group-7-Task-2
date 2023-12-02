@@ -4,6 +4,7 @@ const readline = require('readline');
 const PORT = 3000;
 let IP_ADDRESS;
 
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -14,6 +15,7 @@ function startClient() {
 
   rl.question('Enter the server IP address: ', (address) => {
     IP_ADDRESS = address;
+    promptOptions();
 
     client.on('message', (msg) => {
       const response = msg.toString();
@@ -21,15 +23,35 @@ function startClient() {
       if (response.startsWith('File content:')) {
         const fileContent = response.substring('File content:'.length);
         console.log('File content:\n', fileContent);
-
         promptOptions();
       } else if (response === 'Do you want to rewrite the content or add to it? (rewrite/add): ') {
         rl.question('Enter your choice (rewrite/add): ', (writeOption) => {
           const choiceCommand = `${writeOption.toLowerCase()}`;
           client.send(choiceCommand, PORT, IP_ADDRESS);
         });
-      } else {
-        console.log('Server response:', response);
+        promptOptions();
+      }else if(response.startsWith('!write')){
+        console.log('You do not have write permissions');
+        promptOptions();
+      }
+      else if(response.startsWith('!delete')){
+        console.log('You do not have delete permissions');
+        promptOptions();
+      }
+      else if(response.startsWith('!upload')){
+        console.log('You do not have upload permissions');
+        promptOptions();
+      }
+      else if(response.startsWith('Write to file successful')){
+        console.log(response.toString());
+        promptOptions();
+      }
+      else if(response.startsWith('File deleted successfully')){
+        console.log(response.toString());
+        promptOptions();
+      }
+      else if(response.startsWith('File uploaded successfully')){
+        console.log(response.toString());
         promptOptions();
       }
     });
@@ -84,9 +106,6 @@ function promptOptions() {
     }
   });
 }
-
-
-    promptOptions();
   });
 }
 
