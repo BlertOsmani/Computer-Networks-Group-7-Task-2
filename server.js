@@ -68,3 +68,64 @@ function handleUpload(clientInfo, path, message) {
     }
   });
 }
+
+function handleDelete(clientInfo, path) {
+  fs.unlink(path, (err) => {
+    if (err) {
+      server.send(`Error deleting file: ${err.message}`, clientInfo.port, clientInfo.address);
+    } else {
+      server.send('File deleted successfully', clientInfo.port, clientInfo.address);
+    }
+  });
+}
+
+server.on('listening', () => {
+  const address = server.address();
+  console.log(`Server listening on ${address.address}:${address.port}`);
+});
+
+server.bind(PORT, IP_ADDRESS);
+
+function handleRead(clientInfo, path) {
+  fs.readFile(path, 'utf8', (err, data) => {
+    if (err) {
+      server.send(`Error reading file: ${err.message}`, clientInfo.port, clientInfo.address);
+    } else {
+      server.send(`File content:\n${data}`, clientInfo.port, clientInfo.address);
+    }
+  });
+}
+
+
+function handleWrite(clientInfo, path, message) {
+    const sanitizedMessage = message.replace(/"/g, '');
+  
+    fs.readFile(path, 'utf8', (err, existingContent) => {
+      if (err) {
+        server.send(`Error reading file: ${err.message}`, clientInfo.port, clientInfo.address);
+      } else {
+        server.send('Do you want to rewrite the content or add to it? (rewrite/add): ', clientInfo.port, clientInfo.address);
+          server.once('message', (choiceMsg, choiceRinfo) => {
+          const writeOption = choiceMsg.toString().trim().toLowerCase();
+  
+          const writeMode = writeOption === 'rewrite' ? 'w' : 'a';
+          const newContent = writeMode === 'a' ? existingContent + '\n' + sanitizedMessage : sanitizedMessage;
+  
+          fs.writeFile(path, newContent, 'utf8', (err) => {
+            if (err) {
+              server.send(`Error writing to file: ${err.message}`, clientInfo.port, clientInfo.address);
+            } else {
+              server.send('Write to file successful', clientInfo.port, clientInfo.address);
+            }
+          });
+        });
+      }
+    });
+  }
+  
+
+function handleExecute(clientInfo, path) {
+  
+  // Example: child_process.exec(path, (err, stdout, stderr) => { ... });
+  server.send('Execute command executed', clientInfo.port, clientInfo.address);
+}
