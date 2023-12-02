@@ -1,59 +1,70 @@
 const dgram = require('dgram');
+const fs = require('fs');
 
-// Create server
-const serverName = '10.11.65.138';
+const PORT = 3000;
+const IP_ADDRESS = '192.168.43.251';
 
-const serverPort = 1234;
+let adminClient = null;
 
-// Create server socket
-const serverAddress = { address: serverName, port: serverPort };
-const serverSocket = dgram.createSocket('udp4'); // IPv4, UDP socket
+const server = dgram.createSocket('udp4');
 
-// Associate server port number with the socket
-serverSocket.bind(serverAddress.port, serverAddress.address);
+server.on('message', (msg, rinfo) => {
+  const clientKey = `${rinfo.address}:${rinfo.port}`;
 
-console.log('The server is ready to receive');
+  console.log(`Message received from client ${rinfo.address} ${rinfo.port} : ${msg}`);
 
-// Function to handle incoming messages and send a dynamic response
-function handleIncomingMessage(message, clientAddress) {
-    console.log(`Received message from client at ${clientAddress.address}:${clientAddress.port}`);
-    console.log(`Original message: ${message.toString()}`);
+  if (!adminClient) {
+    adminClient = clientKey;
+    server.send('You are the admin', rinfo.port, rinfo.address);
+  } else if (adminClient !== clientKey) {
+    server.send('You do not have admin permissions', rinfo.port, rinfo.address);
+  }
 
-    // Read input from the console for the dynamic response
-    process.stdout.write('Enter a response: ');
-    process.stdin.once('data', (input) => {
-        const responseMessage = input.toString().trim();
+  const message = msg.toString().trim();
 
-        // Send the dynamic response to the client
-        serverSocket.send(responseMessage, clientAddress.port, clientAddress.address, (err) => {
-            if (err) {
-                console.error('Error sending response to client:', err);
-            } else {
-                console.log('Response sent to client:', responseMessage);
-            }
-        });
-    });
+  const commandMatch = message.match(/^(\w+)\s+([^\s]+)(?:\s+(.*))?$/);
+
+  if (commandMatch) {
+    const [, command, path, content] = commandMatch;
+    switch (command) {
+      case 'read':
+        handleRead(rinfo, path);
+        break;
+      case 'write':
+        if (clientKey === adminClient) {
+          handleWrite(rinfo, path, content);
+        } else {
+          server.send('You do not have write permissions', rinfo.port, rinfo.address);
+        }
+        break;
+      case 'execute':
+        handleExecute(rinfo, path);
+        break;
+      case 'delete':
+        handleDelete(rinfo, path);
+        break;
+        case 'upload':
+          if (clientKey === adminClient) {
+            handleUpload(rinfo, path, content);
+          } else {
+            server.send('You do not have upload permissions', rinfo.port, rinfo.address);
+          }
+          break;
+      default:
+        server.send('Invalid command', rinfo.port, rinfo.address);
+        break;
+    }
+  }
+});
+
+function handleUpload(clientInfo, path, message) {
+  const sanitizedMessage = message.replace(/"/g, '');
+
+  fs.writeFile(path, sanitizedMessage, 'utf8', (err) => {
+    if (err) {
+      server.send(`Error uploading file: ${err.message}`, clientInfo.port, clientInfo.address);
+    } else {
+      server.send('File uploaded successfully', clientInfo.port, clientInfo.address);
+    }
+  });
 }
-
-// Event handler for continuous receival of messages
-serverSocket.on('message', handleIncomingMessage);
-
-// Handle errors
-serverSocket.on('error', (err) => {
-    console.error('Server error:', err);
-});
-
-// Handle server close
-serverSocket.on('close', () => {
-    console.log('Server is closing.');
-});
-
-// Handle server listening
-serverSocket.on('listening', () => {
-    const address = serverSocket.address();
-    console.log(`Server is listening on ${address.address}:${address.port}`);
-});
-
-// For continuous receival of messages
-// While loop is not needed in Node.js as the server continuously listens for messages
-// The serverSocket.on('message') event is triggered whenever a message is received
