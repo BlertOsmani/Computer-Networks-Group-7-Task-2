@@ -1,49 +1,48 @@
 const dgram = require('dgram');
+const readline = require('readline');
 
-// Set server IP address and server socket port number
-const serverName = '10.11.65.138'; // Could be IP address or host name of the server (website)
-const serverPort = 1234; // integer
+const PORT = 3000;
+let IP_ADDRESS;
 
-// Create client socket
-const clientSocket = dgram.createSocket('udp4'); // IPv4, UDP socket
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-// Function to send a message to the server
-function sendMessage() {
-    // Read user input from the console
-    process.stdout.write('Enter a message: ');
-    process.stdin.once('data', (input) => {
-        const message = input.toString().trim();
-s
-        // Send the message to the server
-        clientSocket.send(message, serverPort, serverName, (err) => {
-            if (err) {
-                console.error('Error sending message to server:', err);
-                clientSocket.close();
-            } else {
-                console.log(`Message sent to server at ${serverName}:${serverPort}`);
-            }
+function startClient() {
+  const client = dgram.createSocket('udp4');
+
+  rl.question('Enter the server IP address: ', (address) => {
+    IP_ADDRESS = address;
+
+    client.on('message', (msg) => {
+      const response = msg.toString();
+
+      if (response.startsWith('File content:')) {
+        const fileContent = response.substring('File content:'.length);
+        console.log('File content:\n', fileContent);
+
+        promptOptions();
+      } else if (response === 'Do you want to rewrite the content or add to it? (rewrite/add): ') {
+        rl.question('Enter your choice (rewrite/add): ', (writeOption) => {
+          const choiceCommand = `${writeOption.toLowerCase()}`;
+          client.send(choiceCommand, PORT, IP_ADDRESS);
         });
+      } else {
+        console.log('Server response:', response);
+        promptOptions();
+      }
     });
-}
 
-// Wait for receiving reply from Server
-clientSocket.on('message', (modifiedMessage, serverAddress) => {
-    console.log('Modified Message:', modifiedMessage.toString());
-    console.log('Server Address:', serverAddress);
+    client.on('close', () => {
+      console.log('Disconnected from server');
+      rl.close();
+    });
 
-    // Prompt user for the next messageee
-    sendMessage();
-});
+    client.on('error', (err) => {
+      console.error('Error occurred:', err.message);
+      client.close();
+      rl.close();
+    });
 
-// Handle errors
-clientSocket.on('error', (err) => {
-    console.error('Client error:', err);
-});
-
-// Handle socket close
-clientSocket.on('close', () => {
-    console.log('Client socket is closed.');
-});
-
-// Start by sending the first message
-sendMessage();
+    client.send('Connected', PORT, IP_ADDRESS);
